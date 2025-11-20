@@ -137,7 +137,7 @@ jobs:
       - name: Check preview health
         id: check
         run: |
-          echo "Running preview health check..."
+          echo "Running preview health check.."
           curl -f https://auth-worker-preview.aadhi18082003.workers.dev/health
 
   # -------------------------------
