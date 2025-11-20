@@ -3,7 +3,7 @@ export const LOG_LEVELS = {
 	STRUCTURAL: 'structural',
 	EVENT: 'event',
 	ERROR: 'error',
-}
+};
 
 /**
  * Create log key with hierarchical directory structure:
@@ -27,22 +27,22 @@ export async function persistLog(env, entry) {
 	try { 
 		const key = createLogKey(entry.timestamp, entry.level);
 		await env.LOGS.put(key, JSON.stringify(entry));
-	} catch {}
+	} catch { /* Ignore logging errors */ }
 }
 
 export function buildLogEntry(level, event, details = {}) {
-	return { timestamp: new Date().toISOString(), level, event, details }
+	return { timestamp: new Date().toISOString(), level, event, details };
 }
 
 export async function logStructured(env, event, details) {
-	await persistLog(env, buildLogEntry(LOG_LEVELS.STRUCTURAL, event, details))
+	await persistLog(env, buildLogEntry(LOG_LEVELS.STRUCTURAL, event, details));
 }
 
 export async function logEvent(env, event, details) {
-	await persistLog(env, buildLogEntry(LOG_LEVELS.EVENT, event, details))
+	await persistLog(env, buildLogEntry(LOG_LEVELS.EVENT, event, details));
 }
 
 export async function logError(env, event, details) {
-	await persistLog(env, buildLogEntry(LOG_LEVELS.ERROR, event, details))
+	await persistLog(env, buildLogEntry(LOG_LEVELS.ERROR, event, details));
 }
 
