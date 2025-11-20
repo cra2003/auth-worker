@@ -129,6 +129,11 @@ jobs:
     if: github.event_name == 'pull_request'
 
     steps:
+      - name: Wait before preview health check
+        run: |
+          echo "Waiting 10 seconds for deployment to stabilize..."
+          sleep 10
+
       - name: Check preview health
         id: check
         run: |
