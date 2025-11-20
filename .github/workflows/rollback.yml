@@ -1,0 +1,28 @@
+name: Rollback Worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Version ID to rollback to (leave blank for previous)"
+        required: false
+        default: ""
+
+jobs:
+  rollback:
+    name: Rollback via Wrangler
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Rollback deployment
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          # If version is empty, wrangler will roll back to the previous version
+          command: >
+            rollback
+            ${{ github.event.inputs.version }}
