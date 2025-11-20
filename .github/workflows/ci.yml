@@ -6,9 +6,13 @@ on:
   pull_request:
 
 jobs:
+  # -------------------------------
+  # 0) CI Checks (Lint + Test + Knip)
+  # -------------------------------
   ci:
     name: CI Checks
     runs-on: ubuntu-latest
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -33,28 +37,49 @@ jobs:
         run: npm run knip
 
   # -------------------------------
-  # 1) Production deploy on push to main
+  # 1) Production Deploy
   # -------------------------------
   deploy:
     name: Deploy to Cloudflare (prod)
     runs-on: ubuntu-latest
     needs: ci
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    continue-on-error: true
+    outputs:
+      deploy_status: ${{ steps.deploy_prod.outcome }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy with Wrangler
-        id: deploy_prod
+      - id: deploy_prod
+        name: Deploy with Wrangler
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy
 
+      - name: Slack Notify — Prod Deploy Failed
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"❌ *Production deploy FAILED!* Commit: ${{ github.sha }} by ${{ github.actor }}\"}" \
+            $SLACK_WEBHOOK_URL
+
+      - name: Slack Notify — Prod Deploy Success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"✅ *Production deploy succeeded!* Version live.\n🌐 https://auth-worker.aadhi18082003.workers.dev/health\"}" \
+            $SLACK_WEBHOOK_URL
+
   # -------------------------------
-  # 1.5) Health check after prod deploy
+  # 1.5) Production Health Check
   # -------------------------------
   health_check:
     name: Post-deploy Health Check (prod)
@@ -66,6 +91,9 @@ jobs:
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
 
     steps:
+      - name: Wait before health check
+        run: sleep 10
+
       - name: Check production health
         id: check
         run: |
@@ -73,7 +101,7 @@ jobs:
           curl -f https://auth-worker.aadhi18082003.workers.dev/health
 
   # -------------------------------
-  # 1.6) Rollback only if health check fails (prod)
+  # 1.6) Automatic Production Rollback
   # -------------------------------
   rollback_prod:
     name: Rollback Production
@@ -92,35 +120,62 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: rollback
 
-      - name: Notify rollback
-        run: echo "🚨 PROD health check FAILED — auto-rollback executed."
+      - name: Slack Notify — PROD Auto Rollback
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"🚨 *PRODUCTION HEALTH FAILED* — Auto rollback executed.\n🔁 System restored to last working version.\"}" \
+            $SLACK_WEBHOOK_URL
 
   # -------------------------------
-  # 2) Preview deploy on pull requests
+  # 2) Preview Deploy for PRs
   # -------------------------------
   preview_deploy:
-    name: Deploy Preview (Cloudflare)
+    name: Deploy Preview
     runs-on: ubuntu-latest
     needs: ci
     if: github.event_name == 'pull_request'
+    continue-on-error: true
+    outputs:
+      deploy_status: ${{ steps.deploy_preview.outcome }}
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Deploy preview with Wrangler
-        id: deploy_preview
+      - id: deploy_preview
+        name: Deploy to Preview Environment
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: deploy --env preview
 
+      - name: Slack Notify — Preview Deploy Failed
+        if: failure()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"❌ *Preview deploy FAILED for PR #${{ github.event.pull_request.number }}*\"}" \
+            $SLACK_WEBHOOK_URL
+
+      - name: Slack Notify — Preview Deploy Success
+        if: success()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"🎉 *Preview deploy succeeded for PR #${{ github.event.pull_request.number }}!*\"}" \
+            $SLACK_WEBHOOK_URL
+
   # -------------------------------
   # 2.5) Preview Health Check
   # -------------------------------
   preview_health_check:
-    name: Post-deploy Health Check (preview)
+    name: Preview Health Check
     runs-on: ubuntu-latest
     needs: preview_deploy
     continue-on-error: true
@@ -130,18 +185,16 @@ jobs:
 
     steps:
       - name: Wait before preview health check
-        run: |
-          echo "Waiting 10 seconds for deployment to stabilize..."
-          sleep 10
+        run: sleep 10
 
       - name: Check preview health
         id: check
         run: |
-          echo "Running preview health check.."
+          echo "Running preview health check..."
           curl -f https://auth-worker-preview.aadhi18082003.workers.dev/health
 
   # -------------------------------
-  # 2.6) Rollback Preview if health fails
+  # 2.6) Automatic Preview Rollback
   # -------------------------------
   rollback_preview:
     name: Rollback Preview Environment
@@ -160,5 +213,11 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           command: rollback --env preview
 
-      - name: Notify rollback
-        run: echo "⚠️ PREVIEW health check FAILED — preview auto-rollback executed."
+      - name: Slack Notify — Preview Auto Rollback
+        if: always()
+        env:
+          SLACK_WEBHOOK_URL: ${{ secrets.SLACK_WEBHOOK_URL }}
+        run: |
+          curl -X POST -H 'Content-type: application/json' \
+            --data "{\"text\": \"⚠️ *Preview health FAILED* — auto rollback executed for PR #${{ github.event.pull_request.number }}.\"}" \
+            $SLACK_WEBHOOK_URL
