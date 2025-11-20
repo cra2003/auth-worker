@@ -1,0 +1,15 @@
+name = "auth-worker"
+main = "src/index.js"
+compatibility_date = "2025-11-07"
+
+[observability]
+enabled = true
+
+[[d1_databases]]
+binding = "DB"
+database_name = "auth-db"
+database_id = "1194a511-b050-41cf-b77a-5b45e4d77eca"
+
+[[r2_buckets]]
+binding = "LOGS"
+bucket_name = "auth-worker-logs"
