@@ -72,7 +72,7 @@ describe('Refresh Token Model', () => {
 		it('should only revoke non-revoked tokens', async () => {
 			const tokenHash = 'hash-123';
 
-			const queryChain = db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
+			db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
 
 			await refreshTokenModel.revokeRefreshToken(db, { token_hash: tokenHash });
 
@@ -107,7 +107,7 @@ describe('Refresh Token Model', () => {
 		it('should return null when token not found', async () => {
 			const tokenHash = 'non-existent-hash';
 
-			const queryChain = db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
+			db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
 
 			const result = await refreshTokenModel.getRefreshToken(db, tokenHash);
 
@@ -117,7 +117,7 @@ describe('Refresh Token Model', () => {
 		it('should only return non-revoked tokens', async () => {
 			const tokenHash = 'hash-123';
 
-			const queryChain = db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
+			db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
 
 			await refreshTokenModel.getRefreshToken(db, tokenHash);
 
@@ -128,7 +128,7 @@ describe('Refresh Token Model', () => {
 		it('should limit to 1 result', async () => {
 			const tokenHash = 'hash-123';
 
-			const queryChain = db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
+			db.prepareFirst('SELECT * FROM refresh_tokens WHERE token_hash = ?', null);
 
 			await refreshTokenModel.getRefreshToken(db, tokenHash);
 
@@ -155,7 +155,7 @@ describe('Refresh Token Model', () => {
 		it('should only revoke non-revoked tokens', async () => {
 			const userId = 'user-123';
 
-			const queryChain = db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
+			db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
 
 			await refreshTokenModel.revokeAllUserRefreshTokens(db, userId);
 
@@ -166,7 +166,7 @@ describe('Refresh Token Model', () => {
 		it('should update revoked_at timestamp', async () => {
 			const userId = 'user-123';
 
-			const queryChain = db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
+			db.prepareRun('UPDATE refresh_tokens SET revoked_at', { success: true });
 
 			await refreshTokenModel.revokeAllUserRefreshTokens(db, userId);
 

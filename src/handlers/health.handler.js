@@ -46,6 +46,6 @@ export async function healthHandler(c) {
 }
 
 export function rootHandler(c) {
-	return c.text('Auth API running')
+	return c.text('Auth API running');
 }
 

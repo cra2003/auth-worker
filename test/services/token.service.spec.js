@@ -3,7 +3,6 @@ import { expect } from 'chai';
 import sinon from 'sinon';
 import * as tokenService from '../../src/services/token.service.js';
 import { SignJWT, jwtVerify } from 'jose';
-import * as cryptoUtil from '../../src/utils/crypto.util.js';
 
 describe('Token Service', () => {
 	let sandbox;
@@ -61,7 +60,6 @@ describe('Token Service', () => {
 			const token = await tokenService.generateAccessToken(user, secret);
 			const { payload } = await jwtVerify(token, new TextEncoder().encode(secret));
 
-			const now = Math.floor(Date.now() / 1000);
 			expect(payload.exp - payload.iat).to.equal(15 * 60);
 			expect(payload.sub).to.equal(user.user_id);
 			expect(payload.first_name).to.equal(user.first_name);
@@ -176,7 +174,7 @@ describe('Token Service', () => {
 
 			// Update payload to reflect password change
 			payload.pwd = pwdChangedSec;
-			const result = await tokenService.verifyAccessToken(token, secret);
+			await tokenService.verifyAccessToken(token, secret);
 
 			// Token should be invalidated because iat < pwd
 			// But we need to check with updated pwd in payload
@@ -189,7 +187,7 @@ describe('Token Service', () => {
 				.setProtectedHeader({ alg: 'HS256' })
 				.sign(new TextEncoder().encode(secret));
 
-			const result2 = await tokenService.verifyAccessToken(tokenWithPwd, secret);
+			await tokenService.verifyAccessToken(tokenWithPwd, secret);
 			// This should be valid because we're checking the token's own pwd value
 			// The real check happens when we compare the token's iat with its pwd field
 		});

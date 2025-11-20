@@ -39,7 +39,7 @@ describe('User Model', () => {
 		it('should return null when user not found', async () => {
 			const emailHash = 'non-existent-hash';
 
-			const queryChain = db.prepareFirst('SELECT * FROM users WHERE email_hash = ?', null);
+			db.prepareFirst('SELECT * FROM users WHERE email_hash = ?', null);
 
 			const result = await userModel.findUserByEmailHash(db, emailHash);
 
@@ -69,7 +69,7 @@ describe('User Model', () => {
 		it('should return null when user not found', async () => {
 			const userId = 'non-existent-id';
 
-			const queryChain = db.prepareFirst('SELECT * FROM users WHERE user_id = ?', null);
+			db.prepareFirst('SELECT * FROM users WHERE user_id = ?', null);
 
 			const result = await userModel.findUserById(db, userId);
 
@@ -184,7 +184,7 @@ describe('User Model', () => {
 				first_name: 'Jane'
 			};
 
-			const queryChain = db.prepareRun('UPDATE users SET', { success: true });
+			db.prepareRun('UPDATE users SET', { success: true });
 
 			await userModel.updateUser(db, userId, updates);
 
